@@ -1,12 +1,12 @@
 #include <SoftwareSerial.h>
-#include <AltSoftSerial.h>
+// #include <AltSoftSerial.h>
 
-AltSoftSerial Herbie; // permanently pins 8,9
-int HR1 = 11; // 3
-int EQ = 3; // 6
-int DB = 6;// 5
+SoftwareSerial Herbie(8,9); // permanently pins 8,9
+int HR1 = 10; // 3
+int EQ = 11; // 6
+int DB = 3;// 5
 int PP = 5; // 11
-int HR2 = 10;  // 10
+int HR2 = 6;  // 10
 int rb = 0;
 int i = 0, j = 255, k = 0;
 char incomingByte = 0;
@@ -18,6 +18,8 @@ int PPindicator = 0;
 int readbuffer[] = {0,0};
 int incomingMsg;
 bool status = false;
+int fadeSpeed = 5;
+int previousDB = 0, previousEQ = 0, previousHR1 = 0, previousHR2 = 0, previousP = 0;
 
 void setup(){
   Serial.begin(9600);
@@ -46,31 +48,6 @@ void loop(){
     }
   }
 
-  // while (Serial.available() > 0) {
-  //   char c = Serial.read();
-  //   incomingMsg = atoi(c);
-  //   Serial.println(incomingMsg);
-  //   delay(1);
-  //   break;
-  // }
-  //
-  // while(incomingMsg >= 0 && incomingMsg < 256){
-  //   int j = incomingMsg;
-  //   analogWrite(DB, j);
-  //   delay(1);
-  //   j = 0;
-  //   break;
-  // }
-  //
-  // while(incomingMsg >= 300 && incomingMsg < 556){
-  //   incomingMsg = incomingMsg - 300;
-  //   int j = incomingMsg;
-  //   analogWrite(EQ, j);
-  //   delay(1);
-  //   j = 0;
-  //   break;
-  // }
-  //
   while (readbuffer[0] == 170) { // Hyper Red
     Serial.print(readbuffer[0]);
     Serial.print(", ");
@@ -80,7 +57,8 @@ void loop(){
       readbuffer[j] = 0;
       delay(1);
     }
-    analogWrite(HR1, i);
+    setColor(HR1, i, previousHR1);
+    previousHR1 = i;
     i = 0;
     break;
   }
@@ -94,7 +72,8 @@ void loop(){
       readbuffer[j] = 0;
       delay(1);
     }
-    analogWrite(DB, i);
+    setColor(DB, i, previousDB);
+    previousDB = i;
     i = 0;
     break;
   }
@@ -108,7 +87,8 @@ void loop(){
       readbuffer[j] = 0;
       delay(1);
     }
-    analogWrite(EQ, i);
+    setColor(EQ, i, previousEQ);
+    previousEQ = i;
     i = 0;
     break;
   }
@@ -122,7 +102,8 @@ void loop(){
       readbuffer[j] = 0;
       delay(1);
     }
-    analogWrite(HR2, i);
+    setColor(HR2, i, previousHR2);
+    previousHR2 = i;
     i = 0;
     break;
   }
@@ -136,56 +117,43 @@ void loop(){
       readbuffer[j] = 0;
       delay(1);
     }
-    analogWrite(PP, i);
-    i = 0;
+    setColor(PP, i, previousP);
+    previousP = i;
+        i = 0;
     break;
   }
 }
 
-
 void Off() {
-  j = 255;
-  while (j >= 0) {
-    if ( HR1indicator == 1) {
-      analogWrite(HR1, j);
+  analogWrite(HR1, 0);
+  analogWrite(HR2, 0);
+  analogWrite(DB, 0);
+  analogWrite(EQ, 0);
+  analogWrite(PP, 0);
+  previousDB = 0;
+  previousP = 0;
+  previousEQ = 0;
+  previousHR1 = 0;
+  previousHR2 = 0;
+}
+
+void setColor(int _Color, int _value, int _previousValue){
+  if (_value < 0){
+    _value = 0;
+  }
+  if (_value > 255){
+    _value = 255;
+  }
+  if(_value > _previousValue){
+    for(int c = _previousValue; c <= _value; c++){
+      analogWrite(_Color, c);
+      delay(fadeSpeed);
     }
-    if ( HR2indicator == 1) {
-      analogWrite(HR2, j);
-    }
-    if ( DBindicator == 1) {
-      analogWrite(DB, j);
-    }
-    if ( EQindicator == 1) {
-      analogWrite(EQ, j);
-    }
-    j--;
-    delay(10);
-    if (j == 0) {
-      HR1indicator = 0;
-      EQindicator = 0;
-      HR2indicator = 0;
-      DBindicator = 0;
-      break;
+  }
+  else if(_value < _previousValue){
+    for(int c = _previousValue; c >= _value; c--){
+      analogWrite(_Color, c);
+      delay(fadeSpeed);
     }
   }
 }
-
-// bool Brighten(int _color, int _z, int _max, int _speed){ // LED string, start, end, speed
-//   for(_z; _z <= _max; _z++){
-//     if(_z < 0){_z = 0;}
-//     if(_z > 255){_z = 255;}
-//     analogWrite(_color, _z);
-//     delay(_speed);
-//   }
-//   return status = true;
-// }
-//
-// bool Dim(int _color, int _z, int _min, int _speed){ // LED string, start, end, speed
-//   for(_z; _z >= _min; _z--){
-//     if(_z < 0){_z = 0;}
-//     if(_z > 255){_z = 255;}
-//     analogWrite(_color, _z);
-//     delay(_speed);
-//   }
-//   return status = false;
-// }
